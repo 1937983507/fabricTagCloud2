@@ -1,0 +1,647 @@
+<!-- 在左窗口显示当前经纬度的高德地图，由用户手动绘制圆形区域
+前后端分离，支持通过nodejs筛选PostgreSQL数据库的POI数据
+再由右侧窗口显示POI中心型标签云 -->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title> 地名标签云 </title>
+    <meta charset="UTF-8">
+
+    <!-- 高德地图样式 -->
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: 'a45b8fdd549065da27a9395c8d5d87bd',
+        }
+    </script>
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
+    <script type="text/javascript"
+        src="https://webapi.amap.com/maps?v=2.0&key=80838eddfb922202b289fd1ad6fa4e58&plugin=AMap.MouseTool,AMap.CircleEditor,AMap.Driving,AMap.Scale,AMap.HawkEye,AMap.ToolBar,AMap.ControlBar"></script>
+
+
+    <!-- 引入样式表 -->
+    <link rel="stylesheet" type="text/css" href="../css/styles.css">
+
+    <!-- 引入Jquery -->
+    <script src="../js/modules/jquery.js"></script>
+    <!-- 引入fabric -->
+    <script src="../js/modules/fabric.js"></script>
+
+
+    <!-- 左右窗口拖拽显示 -->
+    <script src="../js/dragControllerDiv.js"></script>
+    <!-- 在左窗口显示高德地图 -->
+    <script src="../js/initAMAP.js"></script>
+    <!-- 获取POI数据 -->
+    <script src="../js/getPOIs.js"></script>
+    <!-- 绘制小地图与比例尺
+    <script src="../js/initLegend.js"></script> -->
+    <!-- 绘制标签云 -->
+    <script src="../js/initTagCloud.js"></script>
+    <!-- 要素详情界面交互 -->
+    <script src="../js/showDetailsWindow.js"></script>
+    <!-- 色带改变交互 -->
+    <script src="../js/changeColor.js"></script>
+    <!-- 色带改变交互 -->
+    <script src="../js/changeFont.js"></script>
+    <!-- 参考尺度变换的标签云绘制 -->
+    <script src="../js/amplifyreduceTagCloud.js"></script>
+
+
+
+</head>
+
+<body>
+
+    <!-- 主界面 -->
+    <div class="outside" ref="box">
+        <div class="leftBox" ref="left">
+            <!-- 左窗口 -->
+            <div class="topBox" ref="top">
+                <!-- 上窗口 -->
+                <!-- 高德地图显示主窗口 -->
+                <div id="container"></div>
+                <!-- 右下角绘制按钮 -->
+                <div class="input-card">
+                    <div class="input-item">
+                        <input id="begin" onclick="begin_circle()" type="button" class="btn" value="拖拽绘制圆形范围" />
+                        <!-- <input id="clear" onclick="clear_circle()" type="button" class="btn" value="清除绘制" /> -->
+                        <input id="finish" onclick="finish_circle()" type="button" class="btn" value="开始生成标签云" />
+                    </div>
+                </div>
+                <!-- 搜索定位栏 -->
+                <div id="searchPos">
+                    <input id="searchPosText" placeholder="搜索位置、公交站、地铁站" />
+                    <div id="searchPosButtom"><img src="../img/search.png"></div>
+                </div>
+            </div>
+            <div class="resize2" ref="resize2" title="收缩侧边栏">⋯</div>
+            <div class="bottomBox" ref="bottom">
+                <!-- 下窗口 -->
+                <p>色带选择：</p>
+                <div id="colorSchemes">
+                    <div>
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div>
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div>
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div>
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div>
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div>
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div>
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div>
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div>
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div>
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                </div>
+                <p>字号选择：</p>
+                <div id="changeFontSize">
+                    一级<select name="oneFontSize" id="oneFontSize">
+                    </select>
+                    二级<select name="twoFontSize" id="twoFontSize">
+                    </select>
+                    三级<select name="threeFontSize" id="threeFontSize">
+                    </select>
+                    四级<select name="fourFontSize" id="fourFontSize">
+                    </select>
+                    五级<select name="fiveFontSize" id="fiveFontSize">
+                    </select>
+                </div>
+                <p>字体选择：</p>
+                <div id="changeTypeface">
+                    <select name="typeface" id="typeface">
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Misan">Misan</option>
+                        <option value="宋体">宋体</option>
+                        <option value="仿宋">仿宋</option>
+                        <option value="黑体">黑体</option>
+                        <option value="等线">等线</option>
+                        <option value="微软雅黑">微软雅黑</option>
+                        <option value="楷体">楷体</option>
+                        <option value="隶书">隶书</option>
+                        <option value="幼圆">幼圆</option>
+                        <option value="华文行楷">华文行楷</option>
+                        <option value="华文中宋">华文中宋</option>
+                    </select>
+                </div>
+                <p>字重选择：</p>
+                <div id="changeFontWeight">
+                    <select name="fontWeight" id="fontWeight">
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="resize" ref="resize" title="收缩侧边栏">⋮</div>
+        <div class="rightBox" ref="right">
+            <!-- 右窗口 -->
+            <canvas id="myCanvas" width="1700" height="1150"></canvas>
+            <!-- 显示POI排名 -->
+            <div id="showPOIRankWindow" style="display: none;">
+                <!-- 筛选栏 -->
+                <div>
+                    <!-- 上方按钮【全部分类】【推荐排序】 -->
+                    <p
+                        style="background-color: rgb(229, 230, 230);display: flex; justify-content: center; align-items: center; font-size: 15px; font-weight: 600; padding: 10px;">
+                        <span id="sortBtm1" style="height: 100%; width: 50%;text-align:center; ">全部分类</span>
+                        <span id="sortBtm2" style="height: 100%; width: 50%;text-align:center; ">推荐排序</span>
+                    </p>
+                    <!-- 筛选POI类别 -->
+                    <div style="display: none;">
+                        <dl>
+                            <dt>全部分类</dt>
+                            <dd>
+                                <ul>
+                                    <li data-val="filter_keywords=美食" class="type-select">全部</li>
+                                </ul>
+                            </dd>
+                            <dt>中餐厅</dt>
+                            <dd>
+                                <ul>
+                                    <li data-val="filter_keywords=中餐馆">全部</li>
+                                    <li data-val="filter_keywords=火锅">火锅</li>
+                                    <li data-val="category=0501;custom=t_tag:自助餐">自助餐</li>
+                                    <li data-val="filter_keywords=川菜">川菜</li>
+                                    <li data-val="filter_keywords=湘菜">湘菜</li>
+                                    <li data-val="filter_keywords=粤菜">粤菜</li>
+                                    <li data-val="filter_keywords=上海菜">上海菜</li>
+                                    <li data-val="filter_keywords=鲁菜">鲁菜</li>
+                                    <li data-val="filter_keywords=东北菜">东北菜</li>
+                                    <li data-val="category=050105|050106">江浙菜</li>
+                                    <li data-val="filter_keywords=北京菜">北京菜</li>
+                                    <li data-val="filter_keywords=云贵菜">云贵菜</li>
+                                    <li data-val="filter_keywords=台湾菜">台湾菜</li>
+                                    <li data-val="filter_keywords=湖北菜">湖北菜</li>
+                                    <li data-val="filter_keywords=西北菜">西北菜</li>
+                                    <li data-val="filter_keywords=安徽菜">安徽菜</li>
+                                    <li data-val="filter_keywords=福建菜">福建菜</li>
+                                    <li data-val="filter_keywords=潮州菜">潮州菜</li>
+                                    <li data-val="filter_keywords=海鲜">海鲜</li>
+                                    <li data-val="filter_keywords=素菜馆">素菜馆</li>
+                                    <li data-val="filter_keywords=清真菜馆">清真菜馆</li>
+                                    <li data-val="filter_keywords=老字号">老字号</li>
+                                </ul>
+                            </dd>
+                            <dt>西餐厅</dt>
+                            <dd>
+                                <ul>
+                                    <li data-val="filter_keywords=西餐">全部</li>
+                                    <li data-val="filter_keywords=牛排">牛排</li>
+                                    <li data-val="filter_keywords=意大利菜">意大利菜</li>
+                                    <li data-val="filter_keywords=法国菜">法国菜</li>
+                                    <li data-val="filter_keywords=地中海菜">地中海菜</li>
+                                    <li data-val="filter_keywords=美式风味">美式风味</li>
+                                    <li data-val="filter_keywords=英国式菜品餐厅">英国风味</li>
+                                    <li data-val="filter_keywords=俄国菜">俄国菜</li>
+                                    <li data-val="filter_keywords=葡国餐馆">葡萄牙菜</li>
+                                    <li data-val="filter_keywords=德国菜">德国菜</li>
+                                    <li data-val="filter_keywords=巴西烤肉">巴西烤肉</li>
+                                    <li data-val="filter_keywords=墨西哥菜">墨西哥菜</li>
+                                </ul>
+                            </dd>
+                            <dt>日本料理</dt>
+                            <dd>
+                                <ul>
+                                    <li data-val="filter_keywords=日本料理">全部</li>
+                                </ul>
+                            </dd>
+                            <dt>韩国料理</dt>
+                            <dd>
+                                <ul>
+                                    <li data-val="filter_keywords=韩国料理">全部</li>
+                                </ul>
+                            </dd>
+                            <dt>东南亚餐厅</dt>
+                            <dd>
+                                <ul>
+                                    <li data-val="filter_keywords=东南亚餐">全部</li>
+                                    <li data-val="filter_keywords=泰国菜">泰国/越南菜</li>
+                                    <li data-val="filter_keywords=印度菜">印度菜</li>
+                                </ul>
+                            </dd>
+                            <dt>快餐</dt>
+                            <dd>
+                                <ul>
+                                    <li data-val="filter_keywords=快餐厅">全部</li>
+                                    <li data-val="filter_keywords=肯德基">肯德基</li>
+                                    <li data-val="filter_keywords=麦当劳">麦当劳</li>
+                                    <li data-val="filter_keywords=必胜客">必胜客</li>
+                                    <li data-val="filter_keywords=茶餐厅">茶餐厅</li>
+                                    <li data-val="filter_keywords=吉野家">吉野家</li>
+                                    <li data-val="filter_keywords=大快活">大快活</li>
+                                </ul>
+                            </dd>
+                            <dt>咖啡厅</dt>
+                            <dd>
+                                <ul>
+                                    <li data-val="filter_keywords=咖啡厅">全部</li>
+                                </ul>
+                            </dd>
+                            <dt>茶艺馆</dt>
+                            <dd>
+                                <ul>
+                                    <li data-val="filter_keywords=茶艺馆">全部</li>
+                                </ul>
+                            </dd>
+                            <dt>冷饮店</dt>
+                            <dd>
+                                <ul>
+                                    <li data-val="filter_keywords=冷饮店">全部</li>
+                                </ul>
+                            </dd>
+                            <dt>糕饼店</dt>
+                            <dd>
+                                <ul>
+                                    <li data-val="filter_keywords=糕饼店">全部</li>
+                                </ul>
+                            </dd>
+                            <dt>甜品店</dt>
+                            <dd>
+                                <ul>
+                                    <li data-val="filter_keywords=甜品店">全部</li>
+                                </ul>
+                            </dd>
+                        </dl>
+                    </div>
+                    <div style="display: none; ">
+                        <div>
+                            <ul>
+                                <li data-val="filter_keywords=美食">全部分类</li>
+                                <li data-val="">中餐厅</li>
+                                <li data-val="">西餐厅</li>
+                                <li data-val="filter_keywords=日本料理">日本料理</li>
+                                <li data-val="filter_keywords=韩国料理">韩国料理</li>
+                                <li data-val="">东南亚餐厅</li>
+                                <li data-val="">快餐</li>
+                                <li data-val="filter_keywords=咖啡厅">咖啡厅</li>
+                                <li data-val="filter_keywords=茶艺馆">茶艺馆</li>
+                                <li data-val="filter_keywords=冷饮店">冷饮店</li>
+                                <li data-val="filter_keywords=糕饼店">糕饼店</li>
+                                <li data-val="filter_keywords=甜品店">甜品店</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div id="sortWindow"
+                        style="display: none; position: absolute; border-style: solid;border-width: 1px;border-color: rgb(170, 170, 170); width: 100px; right: 30px;height: 60px;">
+                        <ul>
+                            <!-- <li>推荐排序</li> -->
+                            <li onclick="disSort()">距离优先</li>
+                            <li onclick="scoreSort()">好评优先</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- POI排序详情栏 -->
+                <ul id="sortDetailWindow"></ul>
+            </div>
+            <!-- 基于尺度的标签云放缩 -->
+            <div id="scaleBtm">
+                <span onclick="amplifyTagCloud()" id="amplifyBtm"><img src="../img/amplify.png"></span>
+                <span onclick="reduceTagCloud()" id="reduceBtm"><img src="../img/reduce.png"></span>
+            </div>
+            <div id="returnPos">
+                <buttom id="returnCenterPos">返回中心位置</buttom>
+                <buttom id="returnScale">返回原始缩放</buttom>
+            </div>
+            <div id="showRankTime">添加显示
+                <div><input type="checkbox" id="addRank">在当前城市的排名</div>
+                <div><input type="checkbox" id="addTime">通行时间（分钟）</div>
+            </div>
+
+
+            <div id="showPOINum">当前展示的景点数量：0</div>
+        </div>
+    </div>
+    <!-- 图例 -->
+    <div id="legend">
+        <p>
+            <font size="5px">与中心的距离</font>
+        </p>
+        <div>
+            <span id="legendColor1"></span>
+            <span id="legendColor2"></span>
+            <span id="legendColor3"></span>
+            <span id="legendColor4"></span>
+            <span id="legendColor5"></span>
+        </div>
+        <p style="text-align: right;">
+            <font size="2px" id="maxDis"> 0 km </font>
+        </p>
+    </div>
+    <!-- 地点详情窗口 -->
+    <div id="detailsWindow">
+        <div id="title">地点详细信息<span id="closeDetailsWindow">×</span></div>
+        <div id="detailsInformation"></div>
+    </div>
+
+
+
+    <script type="text/javascript">
+
+        // fabric画布
+        canvas = new fabric.Canvas('myCanvas', {
+            backgroundColor: 'rgb(0,0,0)',
+            selectionColor: 'blue',
+            selectionLineWidth: 2,
+            // selection: false, // 禁用组选择
+            crossOrigin: 'anonymous'
+        });
+
+        // 左右窗口拖拽显示
+        dragControllerDiv();
+        // 初始化参数
+        initPara();
+        // 绘制高德地图
+        initAMAP();
+        // 读取json中所有的POI数据
+        readJson("../json/chinapoi.json");
+        // // 读取数据库所有POI
+        // getDBPOIs2();
+
+
+        // 要素详情界面交互
+        detailsWindowInteractive();
+        // 色带初始化
+        initcolorScheme();
+        // 色带改变交互
+        changeColorInteractive();
+        // 字号下拉框初始化
+        initFontSelection();
+        // 字号字体改变交互
+        changeFontInteractive();
+
+
+
+        // 记录当前的缩放与偏移
+        vpt = canvas.viewportTransform;
+
+        // 排序按钮
+        const sortBtm2 = document.getElementById('sortBtm2');
+        // 按距离优先或是按好评优先
+        const boxWindow = document.getElementById('sortWindow');
+        let showFlag = false;
+        sortBtm2.addEventListener('click', function () {
+            if (showFlag) {
+                // this.innerText = '显示';
+                boxWindow.style.display = 'none';
+                showFlag = false;
+            } else {
+                // this.innerText = '隐藏';
+                boxWindow.style.display = 'block';
+                showFlag = true;
+            }
+        })
+
+
+        // 单击距离优先
+        function disSort() {
+
+
+            //获取要删除的元素
+            var liToDelete = document.getElementsByClassName("newLi");
+            console.log(liToDelete);
+            //获取li元素的父节点
+            var ul = liToDelete[0].parentNode;
+
+            for (var k = 0; k < liToDelete.length; k++) {
+                console.log(k);
+                //删除li元素
+                ul.removeChild(liToDelete[k]);
+            }
+            for (var k = 0; k < liToDelete.length; k++) {
+                console.log(k);
+                //删除li元素
+                ul.removeChild(liToDelete[k]);
+            }
+            for (var k = 0; k < liToDelete.length; k++) {
+                console.log(k);
+                //删除li元素
+                ul.removeChild(liToDelete[k]);
+            }
+
+            // 按距离升序排列
+            function up(a, b) {
+                return a.distance - b.distance
+            }
+            // sort 会直接对原数据排序
+            myJson.sort(up);
+
+            // 默认展示7条
+            var showNum = 7;
+            var myJsonLen = Object.keys(myJson).length;
+            if (myJsonLen < 10) {
+                // 若不足10条，则展示全部的数据
+                showNum = myJsonLen;
+            }
+
+            for (var i = 0; i < showNum; i++) {
+                var pname = myJson[i].pname;
+                var X = myJson[i].X_wgs84;
+                var Y = myJson[i].Y_wgs84;
+                var distance = myJson[i].distance;
+                var rankInChina = myJson[i].rankInChina;
+                var rankInCity = myJson[i].rankInCity;
+
+                addLi(pname, Math.trunc(distance), rankInCity);
+            }
+
+        }
+
+        // 单击评分优先addTime
+        function scoreSort() {
+            //获取要删除的元素
+            var liToDelete = document.getElementsByClassName("newLi");
+            console.log(liToDelete);
+            //获取li元素的父节点
+            var ul = liToDelete[0].parentNode;
+
+            for (var k = 0; k < liToDelete.length; k++) {
+                console.log(k);
+                //删除li元素
+                ul.removeChild(liToDelete[k]);
+            }
+            for (var k = 0; k < liToDelete.length; k++) {
+                console.log(k);
+                //删除li元素
+                ul.removeChild(liToDelete[k]);
+            }
+            for (var k = 0; k < liToDelete.length; k++) {
+                console.log(k);
+                //删除li元素
+                ul.removeChild(liToDelete[k]);
+            }
+
+            // 按距离升序排列
+            function up(a, b) {
+                return a.rankInChina - b.rankInChina;
+            }
+            // sort 会直接对原数据排序
+            myJson.sort(up);
+
+            // 默认展示7条
+            var showNum = 7;
+            var myJsonLen = Object.keys(myJson).length;
+            if (myJsonLen < 10) {
+                // 若不足10条，则展示全部的数据
+                showNum = myJsonLen;
+            }
+
+            for (var i = 0; i < showNum; i++) {
+                var pname = myJson[i].pname;
+                var X = myJson[i].X_wgs84;
+                var Y = myJson[i].Y_wgs84;
+                var distance = myJson[i].distance;
+                var rankInChina = myJson[i].rankInChina;
+                var rankInCity = myJson[i].rankInCity;
+
+                addLi(pname, Math.trunc(distance), rankInCity);
+            }
+        }
+
+        // 添加li 
+        function addLi(tempName, tempDis, tempRank) {
+            var templi = document.createElement("li");
+            templi.setAttribute("class", "newLi");
+            addSpan(templi, "地点名：" + tempName);
+            addSpan(templi, "与中心点距离：" + tempDis + "米");
+            addSpan(templi, "在当前城市排名：" + tempRank);
+            document.getElementById("sortDetailWindow").appendChild(templi);
+        }
+        // 添加div标签，好设置样式
+        function addSpan(li, text) {
+            var tempdiv = document.createElement("div");
+            tempdiv.innerHTML = text;
+            li.appendChild(tempdiv);
+        }
+
+
+
+        // 单击添加排名
+        const addRankBtm = document.getElementById('addRank');
+        addRankBtm.addEventListener('change', function (event) {
+            const isChecked = event.target.checked;
+            // 清除canvas已绘制的元素
+            canvas.clear();
+            // 移除所有监听事件、清除所有元素
+            canvas.dispose();
+            // 初始化canvas
+            canvas = new fabric.Canvas('myCanvas', {
+                backgroundColor: 'rgb(0,0,0)',
+                selectionColor: 'blue',
+                selectionLineWidth: 2,
+                // selection: false, // 禁用组选择
+                crossOrigin: 'anonymous'
+            });
+            // 中心不变
+            canvas.setViewportTransform(vpt);
+
+            // 获取POI数据
+            nowJson = poisPyramid[tagCloudScale];
+            // 绘制标签云
+            getTagCloud(nowJson);
+        });
+
+
+        // 单击添加通行时间
+        const addTimeBtm = document.getElementById('addTime');
+        addTimeBtm.addEventListener('change', addTimeFunction);
+
+        async function addTimeFunction() {
+            // 清除canvas已绘制的元素
+            canvas.clear();
+            // 移除所有监听事件、清除所有元素
+            canvas.dispose();
+            // 初始化canvas
+            canvas = new fabric.Canvas('myCanvas', {
+                backgroundColor: 'rgb(0,0,0)',
+                selectionColor: 'blue',
+                selectionLineWidth: 2,
+                // selection: false, // 禁用组选择
+                crossOrigin: 'anonymous'
+            });
+            // 中心不变
+            canvas.setViewportTransform(vpt);
+
+            // 获取POI数据
+            nowJson = poisPyramid[tagCloudScale];
+
+
+            // 若是选中添加通行时间，则计算各POI点与中心点的通行时间
+            const addTimeBtm = document.getElementById('addTime');
+            var isAddTime = addTimeBtm.checked;
+            if (isAddTime) {
+                // console.log(circleX, circleY);
+                // 遍历获取通行时间
+                var nowJsonLen = Object.keys(nowJson).length;
+                for (var i = 0; i < nowJsonLen; i++) {
+                    // 根据起终点经纬度规划驾车导航路线
+                    // 高德驾车路径，获取通行时间
+                    const res = await getTime([circleX, circleY], nowJson[i]);
+                    var res_distance = res.routes[0].distance;  //距离单位：m
+                    var res_time = res.routes[0].time;  //时间单位：s
+                    nowJson[i].distance2 = res_distance / 1000;  //距离单位：km
+                    nowJson[i].time = Math.round(res_time / 60);  // 距离单位：min
+                }
+            }
+
+
+            // 绘制标签云
+            getTagCloud(nowJson);
+        }
+
+
+        // 输入中心经纬度与当前POI点
+        function getTime(lnglat, poi) {
+            return new Promise((resolve, reject) => {
+                // 高德驾车路径查询，一天只有5000配额
+                driving.search(new AMap.LngLat(lnglat[0], lnglat[1]), new AMap.LngLat(poi.X_gcj02, poi.Y_gcj02), (status, result) => {
+                    // result 即是对应的驾车导航信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_DrivingResult
+                    if (status === 'complete') {
+                        resolve(result)
+                    } else {
+                        console.log("error", result)
+                    }
+                });
+            });
+        }
+
+
+        // 单击视图返回中心
+        const returnCenterPosBtm = document.getElementById('returnCenterPos');
+        returnCenterPosBtm.addEventListener('click', function (event) {
+            vpt[4] = 0;
+            vpt[5] = 0;
+            // console.log(vpt);
+            canvas.setViewportTransform(vpt);
+
+        });
+        // 单击视图还原缩放比例
+        const returnScaleBtm = document.getElementById('returnScale');
+        returnScaleBtm.addEventListener('click', function (event) {
+            vpt[0] = 1;
+            vpt[3] = 1;
+            // console.log(vpt);
+            canvas.setViewportTransform(vpt);
+        });
+
+    </script>
+
+</body>
+
+</html>
