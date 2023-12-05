@@ -137,6 +137,13 @@ function readJson(jsonFile) {
         // 只筛选10000条数据
         if (iinum == 10000) break;
 
+        // var city = jsonPOI[i].city;
+        // if(city!="武汉") continue;
+
+        // var rankIncity = jsonPOI[i].rankInCity
+        // if(rankIncity>100) continue;
+
+
         var pname = jsonPOI[i].pname;
         var X_gcj02 = jsonPOI[i].X_gcj02;
         var Y_gcj02 = jsonPOI[i].Y_gcj02;

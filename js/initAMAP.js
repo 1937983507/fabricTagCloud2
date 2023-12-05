@@ -374,7 +374,9 @@ function finish_circle() {
         selectionColor: 'blue',
         selectionLineWidth: 2,
         // selection: false, // 禁用组选择
-        crossOrigin: 'anonymous'
+        crossOrigin: 'anonymous',
+        fireRightClick: true, // 启用右键，button的数字为3
+        stopContextMenu: true, // 禁止默认右键菜单
     });
 
     // 获取绘制的圆形覆盖物对象

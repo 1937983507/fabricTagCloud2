@@ -1,3 +1,5 @@
+// 参考地图的多尺度效应，单击添加减少POI数据
+
 
 // 记录当前标签云的放缩尺度（0-6，初始为4，0为缩小到最小，6为放大到最大）
 tagCloudScale = 4;
@@ -71,7 +73,9 @@ function getNewTagCloud(i) {
         selectionColor: 'blue',
         selectionLineWidth: 2,
         // selection: false, // 禁用组选择
-        crossOrigin: 'anonymous'
+        crossOrigin: 'anonymous',
+        fireRightClick: true, // 启用右键，button的数字为3
+        stopContextMenu: true, // 禁止默认右键菜单
     });
     // 中心不变
     canvas.setViewportTransform(vpt);

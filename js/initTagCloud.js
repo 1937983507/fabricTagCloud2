@@ -583,7 +583,63 @@ function mouseInteractive(nowJson) {
     });
 
 
+    // 右键菜单
+    canvas.on('mouse:down', function (opt) {
+        // 判断：右键，且在元素上右键
+        // opt.button: 1-左键；2-中键；3-右键
+        // 在画布上点击：opt.target 为 null
+        if (opt.button === 3 && opt.target) {
+            // 获取当前元素
+            activeEl = opt.target;
 
+            menu = document.getElementById("right_menu");
+            // menu.domReady = function () {
+            //     console.log(123);
+            // }
+
+            // 显示菜单，设置右键菜单位置
+            // 获取菜单组件的宽高
+            const menuWidth = menu.offsetWidth;
+            const menuHeight = menu.offsetHeight;
+
+            // 当前鼠标位置
+            let pointX = opt.pointer.x;
+            let pointY = opt.pointer.y;
+
+            // 计算菜单出现的位置
+            // 如果鼠标靠近画布右侧，菜单就出现在鼠标指针左侧
+            if (canvas.width - pointX <= menuWidth) {
+                pointX -= menuWidth;
+            }
+            // 如果鼠标靠近画布底部，菜单就出现在鼠标指针上方
+            if (canvas.height - pointY <= menuHeight) {
+                pointY -= menuHeight;
+            }
+
+            // console.log(opt.target);
+            // 读取右键对象的字体、字重、字号等属性
+            var afontWeight = opt.target.fontWeight;
+            var atypeface = opt.target.fontFamily;
+            var afontSize = opt.target.fontSize;
+
+            // 字重
+            var selectElement = document.getElementById("afontWeight");
+            selectElement.value = afontWeight;
+
+            // 字体
+            var selectElement = document.getElementById("atypeface");
+            selectElement.value = atypeface;
+
+
+            // 展示菜单
+            menu.style = "visibility: visible; left: " + pointX + "px;top: " + pointY + "px; z-index: 999;";
+        }
+        else {
+            // 隐藏菜单
+            menu.style = "visibility: hidden;left: 0;top: 0;z-index: -100;";
+            activeEl = null;
+        }
+    })
 
 
     // 获取标签对象
@@ -695,6 +751,30 @@ function clearHighlight() {
 
 
 
+// 返回中心与原始缩放比例
+function returnPos() {
+
+    // 单击视图返回中心
+    const returnCenterPosBtm = document.getElementById('returnCenterPos');
+    returnCenterPosBtm.addEventListener('click', function (event) {
+        vpt[4] = 0;
+        vpt[5] = 0;
+        // console.log(vpt);
+        canvas.setViewportTransform(vpt);
+
+    });
+    // 单击视图还原缩放比例
+    const returnScaleBtm = document.getElementById('returnScale');
+    returnScaleBtm.addEventListener('click', function (event) {
+        vpt[0] = 1;
+        vpt[3] = 1;
+        // console.log(vpt);
+        canvas.setViewportTransform(vpt);
+    });
+}
+
+
+
 // 生成标签云
 function getTagCloud(nowJson) {
 
@@ -726,8 +806,8 @@ function getTagCloud(nowJson) {
     var showmaxDis = document.getElementById("maxDis");
     showmaxDis.innerHTML = (maxDis / 1000).toFixed(2) + "km";
 
-
-
+    // 返回中心与原始缩放比例
+    returnPos();
 
 
 

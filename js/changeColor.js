@@ -43,7 +43,6 @@ function changeColorInteractive() {
     var allColorSchemeDiv = document.getElementById("colorSchemes").getElementsByTagName("div");
     var allColorSchemeDivLength = allColorSchemeDiv.length;
 
-    // 默认选中最后一个色带
     allColorSchemeDiv[nowColorScheme].style.border = "2px solid rgb(221,221,221)";
 
     // 批量添加鼠标事件监控

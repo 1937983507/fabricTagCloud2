@@ -47,7 +47,8 @@
     <script src="../js/changeFont.js"></script>
     <!-- 参考尺度变换的标签云绘制 -->
     <script src="../js/amplifyreduceTagCloud.js"></script>
-
+    <!-- 单击添加排名或通行时间 -->
+    <script src="../js/addRankTime.js"></script>
 
 
 </head>
@@ -56,10 +57,10 @@
 
     <!-- 主界面 -->
     <div class="outside" ref="box">
+        <!-- 左窗口 -->
         <div class="leftBox" ref="left">
-            <!-- 左窗口 -->
+            <!-- 上窗口 -->
             <div class="topBox" ref="top">
-                <!-- 上窗口 -->
                 <!-- 高德地图显示主窗口 -->
                 <div id="container"></div>
                 <!-- 右下角绘制按钮 -->
@@ -77,8 +78,9 @@
                 </div>
             </div>
             <div class="resize2" ref="resize2" title="收缩侧边栏">⋯</div>
+            <!-- 下窗口 -->
             <div class="bottomBox" ref="bottom">
-                <!-- 下窗口 -->
+
                 <p>色带选择：</p>
                 <div id="colorSchemes">
                     <div>
@@ -150,8 +152,9 @@
             </div>
         </div>
         <div class="resize" ref="resize" title="收缩侧边栏">⋮</div>
+        <!-- 右窗口 -->
         <div class="rightBox" ref="right">
-            <!-- 右窗口 -->
+
             <canvas id="myCanvas" width="1700" height="1150"></canvas>
             <!-- 显示POI排名 -->
             <div id="showPOIRankWindow" style="display: none;">
@@ -315,17 +318,41 @@
                 <span onclick="amplifyTagCloud()" id="amplifyBtm"><img src="../img/amplify.png"></span>
                 <span onclick="reduceTagCloud()" id="reduceBtm"><img src="../img/reduce.png"></span>
             </div>
+            <!-- 返回中心位置与原始缩放 -->
             <div id="returnPos">
                 <buttom id="returnCenterPos">返回中心位置</buttom>
                 <buttom id="returnScale">返回原始缩放</buttom>
             </div>
+            <!-- 添加显示排名与通行时间 -->
             <div id="showRankTime">添加显示
                 <div><input type="checkbox" id="addRank">在当前城市的排名</div>
                 <div><input type="checkbox" id="addTime">通行时间（分钟）</div>
             </div>
-
-
+            <!-- 显示当前景点数量 -->
             <div id="showPOINum">当前展示的景点数量：0</div>
+            <!-- 右键菜单（绝对定位，且默认是隐藏的） -->
+            <div id="right_menu">
+                <div id="changeATypeface" class="menu-li">字体：
+                    <select name="atypeface" id="atypeface">
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Misan">Misan</option>
+                        <option value="宋体">宋体</option>
+                        <option value="仿宋">仿宋</option>
+                        <option value="黑体">黑体</option>
+                        <option value="等线">等线</option>
+                        <option value="微软雅黑">微软雅黑</option>
+                        <option value="楷体">楷体</option>
+                        <option value="隶书">隶书</option>
+                        <option value="幼圆">幼圆</option>
+                        <option value="华文行楷">华文行楷</option>
+                        <option value="华文中宋">华文中宋</option>
+                    </select>
+                </div>
+                <div id="changeAFontWeight" class="menu-li">字重：
+                    <select name="afontWeight" id="afontWeight">
+                    </select>
+                </div>
+            </div>
         </div>
     </div>
     <!-- 图例 -->
@@ -360,7 +387,9 @@
             selectionColor: 'blue',
             selectionLineWidth: 2,
             // selection: false, // 禁用组选择
-            crossOrigin: 'anonymous'
+            crossOrigin: 'anonymous',
+            fireRightClick: true, // 启用右键，button的数字为3
+            stopContextMenu: true, // 禁止默认右键菜单
         });
 
         // 左右窗口拖拽显示
@@ -386,10 +415,21 @@
         // 字号字体改变交互
         changeFontInteractive();
 
-
+        // 单击添加排名或通行时间
+        addRankTime();
 
         // 记录当前的缩放与偏移
         vpt = canvas.viewportTransform;
+
+
+        // 获取菜单要素
+        menu = document.getElementById("right_menu");
+        // 禁止在菜单上的默认右键事件
+        menu.oncontextmenu = function (e) {
+            e.preventDefault()
+        }
+
+
 
         // 排序按钮
         const sortBtm2 = document.getElementById('sortBtm2');
@@ -531,114 +571,6 @@
         }
 
 
-
-        // 单击添加排名
-        const addRankBtm = document.getElementById('addRank');
-        addRankBtm.addEventListener('change', function (event) {
-            const isChecked = event.target.checked;
-            // 清除canvas已绘制的元素
-            canvas.clear();
-            // 移除所有监听事件、清除所有元素
-            canvas.dispose();
-            // 初始化canvas
-            canvas = new fabric.Canvas('myCanvas', {
-                backgroundColor: 'rgb(0,0,0)',
-                selectionColor: 'blue',
-                selectionLineWidth: 2,
-                // selection: false, // 禁用组选择
-                crossOrigin: 'anonymous'
-            });
-            // 中心不变
-            canvas.setViewportTransform(vpt);
-
-            // 获取POI数据
-            nowJson = poisPyramid[tagCloudScale];
-            // 绘制标签云
-            getTagCloud(nowJson);
-        });
-
-
-        // 单击添加通行时间
-        const addTimeBtm = document.getElementById('addTime');
-        addTimeBtm.addEventListener('change', addTimeFunction);
-
-        async function addTimeFunction() {
-            // 清除canvas已绘制的元素
-            canvas.clear();
-            // 移除所有监听事件、清除所有元素
-            canvas.dispose();
-            // 初始化canvas
-            canvas = new fabric.Canvas('myCanvas', {
-                backgroundColor: 'rgb(0,0,0)',
-                selectionColor: 'blue',
-                selectionLineWidth: 2,
-                // selection: false, // 禁用组选择
-                crossOrigin: 'anonymous'
-            });
-            // 中心不变
-            canvas.setViewportTransform(vpt);
-
-            // 获取POI数据
-            nowJson = poisPyramid[tagCloudScale];
-
-
-            // 若是选中添加通行时间，则计算各POI点与中心点的通行时间
-            const addTimeBtm = document.getElementById('addTime');
-            var isAddTime = addTimeBtm.checked;
-            if (isAddTime) {
-                // console.log(circleX, circleY);
-                // 遍历获取通行时间
-                var nowJsonLen = Object.keys(nowJson).length;
-                for (var i = 0; i < nowJsonLen; i++) {
-                    // 根据起终点经纬度规划驾车导航路线
-                    // 高德驾车路径，获取通行时间
-                    const res = await getTime([circleX, circleY], nowJson[i]);
-                    var res_distance = res.routes[0].distance;  //距离单位：m
-                    var res_time = res.routes[0].time;  //时间单位：s
-                    nowJson[i].distance2 = res_distance / 1000;  //距离单位：km
-                    nowJson[i].time = Math.round(res_time / 60);  // 距离单位：min
-                }
-            }
-
-
-            // 绘制标签云
-            getTagCloud(nowJson);
-        }
-
-
-        // 输入中心经纬度与当前POI点
-        function getTime(lnglat, poi) {
-            return new Promise((resolve, reject) => {
-                // 高德驾车路径查询，一天只有5000配额
-                driving.search(new AMap.LngLat(lnglat[0], lnglat[1]), new AMap.LngLat(poi.X_gcj02, poi.Y_gcj02), (status, result) => {
-                    // result 即是对应的驾车导航信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_DrivingResult
-                    if (status === 'complete') {
-                        resolve(result)
-                    } else {
-                        console.log("error", result)
-                    }
-                });
-            });
-        }
-
-
-        // 单击视图返回中心
-        const returnCenterPosBtm = document.getElementById('returnCenterPos');
-        returnCenterPosBtm.addEventListener('click', function (event) {
-            vpt[4] = 0;
-            vpt[5] = 0;
-            // console.log(vpt);
-            canvas.setViewportTransform(vpt);
-
-        });
-        // 单击视图还原缩放比例
-        const returnScaleBtm = document.getElementById('returnScale');
-        returnScaleBtm.addEventListener('click', function (event) {
-            vpt[0] = 1;
-            vpt[3] = 1;
-            // console.log(vpt);
-            canvas.setViewportTransform(vpt);
-        });
 
     </script>
 
