@@ -109,9 +109,18 @@ async function initDraw(nowJson) {
         // 要显示的标签名称
         var pName = nowJson[i].pname;
         if (isAddRank) {
+            // 需要添加排名
             pName += nowJson[i].rankInCity;
         }
         if (isAddTime) {
+            if (!nowJson[i].time) {
+                // 当前POI没有获取与中心的通行时间，马上获取
+                const res = await getTime([circleX, circleY], nowJson[i]);
+                var res_distance = res.routes[0].distance;  //距离单位：m
+                var res_time = res.routes[0].time;  //时间单位：s
+                nowJson[i].distance2 = res_distance / 1000;  //距离单位：km
+                nowJson[i].time = Math.round(res_time / 60);  // 距离单位：min
+            }
             pName += ("|" + nowJson[i].time);
         }
 
@@ -566,6 +575,10 @@ function mouseInteractive(nowJson) {
             var rankInCity = nowJson[currindex].rankInCity;
 
             var str = "地点名：" + pname + "\n经度：" + X + "\n纬度：" + Y + "\n与中心点距离：" + Math.trunc(distance) + "米\n在当前城市排名：" + rankInCity;
+            if(nowJson[currindex].time){
+                // 已经获取了时间的
+                str+=("\n通行时间："+nowJson[currindex].time+"分钟");
+            }
 
             let detailsInformation = document.getElementById('detailsInformation');
             detailsInformation.innerText = str;
