@@ -84,15 +84,15 @@ async function initDraw(nowJson) {
 
     // 偏移策略
     var strategy = 3;
-    // 1为原始方案，会造成标签的堆积对齐
-    // 2为随机数偏移方案，在保证不增加额外时间的前提下，优化堆积对齐现象
-    // 3是顺逆时针偏移15度方案，可解决堆积对齐现象，但是时间复杂度将会大幅增加
-    if (nowJsonLen < 300) {
-        strategy = 3;
-    }
-    else {
-        strategy = 2;
-    }
+    // // 1为原始方案，会造成标签的堆积对齐
+    // // 2为随机数偏移方案，在保证不增加额外时间的前提下，优化堆积对齐现象
+    // // 3是顺逆时针偏移15度方案，可解决堆积对齐现象，但是时间复杂度将会大幅增加
+    // if (nowJsonLen < 300) {
+    //     strategy = 3;
+    // }
+    // else {
+    //     strategy = 2;
+    // }
 
 
     // 是否加排名
@@ -102,6 +102,11 @@ async function initDraw(nowJson) {
     const addTimeBtm = document.getElementById('addTime');
     var isAddTime = addTimeBtm.checked;
 
+
+    // 短暂地暂停，使得画布能不断更新
+    function sleep(time) {
+        return new Promise((resolve) => setTimeout(resolve, time));
+    }
 
     // 逐一对每一文本进行判断
     for (var i = 0; i < nowJsonLen; i++) {
@@ -122,6 +127,9 @@ async function initDraw(nowJson) {
                 nowJson[i].time = Math.round(res_time / 60);  // 距离单位：min
             }
             pName += ("|" + nowJson[i].time);
+        }
+        else {
+            await sleep(0.0000001);
         }
 
         if (strategy == 1) {
@@ -306,13 +314,13 @@ async function initDraw(nowJson) {
             }
             nowJson[i].screenLocations = [];
             nowJson[i].newScreenLocations = [];
-            // nowJson[i].screenLocations.push(rotate(originX, originY, nowJson[i].screenX, nowJson[i].screenY, -15));
+            nowJson[i].screenLocations.push(rotate(originX, originY, nowJson[i].screenX, nowJson[i].screenY, -15));
             nowJson[i].screenLocations.push(rotate(originX, originY, nowJson[i].screenX, nowJson[i].screenY, -10));
-            // nowJson[i].screenLocations.push(rotate(originX, originY, nowJson[i].screenX, nowJson[i].screenY, -5));
+            nowJson[i].screenLocations.push(rotate(originX, originY, nowJson[i].screenX, nowJson[i].screenY, -5));
             nowJson[i].screenLocations.push([nowJson[i].screenX, nowJson[i].screenY]);
-            // nowJson[i].screenLocations.push(rotate(originX, originY, nowJson[i].screenX, nowJson[i].screenY, 5));
+            nowJson[i].screenLocations.push(rotate(originX, originY, nowJson[i].screenX, nowJson[i].screenY, 5));
             nowJson[i].screenLocations.push(rotate(originX, originY, nowJson[i].screenX, nowJson[i].screenY, 10));
-            // nowJson[i].screenLocations.push(rotate(originX, originY, nowJson[i].screenX, nowJson[i].screenY, 15));
+            nowJson[i].screenLocations.push(rotate(originX, originY, nowJson[i].screenX, nowJson[i].screenY, 15));
             // console.log(nowJson[i].screenLocations);
 
             var maybeScreenLos = nowJson[i].screenLocations.length;
@@ -573,11 +581,12 @@ function mouseInteractive(nowJson) {
             var distance = nowJson[currindex].distance;
             var rankInChina = nowJson[currindex].rankInChina;
             var rankInCity = nowJson[currindex].rankInCity;
+            var city = nowJson[currindex].city;
 
-            var str = "地点名：" + pname + "\n经度：" + X + "\n纬度：" + Y + "\n与中心点距离：" + Math.trunc(distance) + "米\n在当前城市排名：" + rankInCity;
-            if(nowJson[currindex].time){
+            var str = "地点名：" + pname + "\n经度：" + X + "\n纬度：" + Y + "\n与中心点距离：" + Math.trunc(distance) + "米\n在"+ city +"排名：" + rankInCity;
+            if (nowJson[currindex].time) {
                 // 已经获取了时间的
-                str+=("\n通行时间："+nowJson[currindex].time+"分钟");
+                str += ("\n通行时间：" + nowJson[currindex].time + "分钟");
             }
 
             let detailsInformation = document.getElementById('detailsInformation');
@@ -789,7 +798,7 @@ function returnPos() {
 
 
 // 生成标签云
-function getTagCloud(nowJson) {
+async function getTagCloud(nowJson) {
 
     // 已经绘制的文本
     // resJson = [];
@@ -801,7 +810,7 @@ function getTagCloud(nowJson) {
     // 绘制中心点 
     drawCenter();
     // 初次绘制文本
-    initDraw(nowJson);
+    await initDraw(nowJson);
     // 鼠标交互事件
     mouseInteractive(nowJson);
 

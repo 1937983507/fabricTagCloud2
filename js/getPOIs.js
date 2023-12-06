@@ -152,6 +152,7 @@ function readJson(jsonFile) {
         var location = [X_gcj02, Y_gcj02];
         var rankInCity = jsonPOI[i].rankInCity;
         var rankInChina = jsonPOI[i].rankInChina;
+        var city = jsonPOI[i].city;
         // console.log(pname,X,Y);
         var newJson = {
             "pname": pname,
@@ -161,7 +162,8 @@ function readJson(jsonFile) {
             "Y_wgs84": Y_wgs84,
             "lnglat": location,
             "rankInCity": rankInCity,
-            "rankInChina": rankInChina
+            "rankInChina": rankInChina,
+            "city": city,
         }
         myJson.push(newJson);
         iinum++;
